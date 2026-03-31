@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { getThreeCardReading } from '../services/gemini';
+import { getThreeCardReading } from '../services/kimi';
 import { Loader2, Sparkles, ArrowRight, RotateCcw, MoonStar, Download } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 

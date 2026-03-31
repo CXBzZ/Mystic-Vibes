@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import TarotReading from './components/TarotReading';
-import ImageEditor from './components/ImageEditor';
-import { Sparkles, Image as ImageIcon, Moon } from 'lucide-react';
+import { Sparkles, Moon } from 'lucide-react';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'tarot' | 'editor'>('tarot');
+  const [activeTab, setActiveTab] = useState<'tarot'>('tarot');
 
   return (
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center relative overflow-hidden">
@@ -41,21 +40,10 @@ export default function App() {
           <Sparkles size={18} />
           塔罗占卜
         </button>
-        <button
-          onClick={() => setActiveTab('editor')}
-          className={`px-8 py-3 font-serif font-bold tracking-wider rounded-full flex items-center gap-2 transition-all duration-300 ${
-            activeTab === 'editor' 
-              ? 'bg-gold text-midnight shadow-[0_0_15px_rgba(212,175,55,0.4)]' 
-              : 'text-ivory-dim hover:text-ivory hover:bg-white/5'
-          }`}
-        >
-          <ImageIcon size={18} />
-          气场滤镜
-        </button>
       </div>
 
       <main className="w-full max-w-4xl relative z-10">
-        {activeTab === 'tarot' ? <TarotReading /> : <ImageEditor />}
+        <TarotReading />
       </main>
     </div>
   );

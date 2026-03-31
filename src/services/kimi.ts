@@ -1,6 +1,4 @@
-import { GoogleGenAI } from "@google/genai";
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { supabase } from '../lib/supabase';
 
 export async function getTarotReading(question: string, cardName: string) {
   const prompt = `You are a Gen Z tarot reader. You speak with modern slang, emojis, and a fun, slightly edgy but supportive vibe. 
@@ -8,11 +6,7 @@ The user asked: "${question}"
 They drew the card: "${cardName}"
 Give them a short, punchy, and insightful tarot reading based on this card and their question. Keep it under 150 words.`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-  });
-  return response.text;
+  return callKimiApi(prompt);
 }
 
 export async function getThreeCardReading(question: string, cards: string[]) {
@@ -31,35 +25,22 @@ export async function getThreeCardReading(question: string, cards: string[]) {
 - 【Vibe Check / 最终建议】
 保持语言生动有趣，字数控制在400字以内。`;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-  });
-  return response.text;
+  return callKimiApi(prompt);
 }
 
-export async function editImage(base64Image: string, mimeType: string, prompt: string) {
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [
-        {
-          inlineData: {
-            data: base64Image,
-            mimeType: mimeType,
-          },
-        },
-        {
-          text: prompt,
-        },
-      ],
-    },
+async function callKimiApi(prompt: string) {
+  const { data, error } = await supabase.functions.invoke('kimi-tarot', {
+    body: { prompt }
   });
 
-  for (const part of response.candidates?.[0]?.content?.parts || []) {
-    if (part.inlineData) {
-      return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-    }
+  if (error) {
+    console.error("Supabase Edge Function Error:", error);
+    throw new Error(`Failed to invoke function: ${error.message}`);
   }
-  throw new Error("No image returned from Gemini");
+
+  if (data?.error) {
+    throw new Error(data.error);
+  }
+
+  return data.text;
 }
