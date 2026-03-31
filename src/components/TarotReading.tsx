@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { motion } from 'motion/react';
 import { getThreeCardReading } from '../services/kimi';
-import { Loader2, Sparkles, ArrowRight, RotateCcw, MoonStar, Download } from 'lucide-react';
+import { Loader2, Sparkles, ArrowRight, RotateCcw, MoonStar, Download, Share2 } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
 
 interface TarotCard {
@@ -48,6 +48,7 @@ export default function TarotReading() {
   const [isGenerating, setIsGenerating] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const handleStartDraw = () => {
     if (!question.trim()) return;
@@ -109,6 +110,59 @@ export default function TarotReading() {
     } finally {
       setIsDownloading(false);
     }
+  };
+
+  const handleShareImage = async () => {
+    if (!resultRef.current) return;
+    setIsSharing(true);
+    try {
+      // Use toBlob directly as it's faster and avoids fetch()
+      const blob = await htmlToImage.toBlob(resultRef.current, {
+        backgroundColor: '#11131A',
+        pixelRatio: 2,
+      });
+
+      if (!blob) throw new Error('Failed to generate image blob');
+
+      const file = new File([blob], `cyber-tarot-${new Date().getTime()}.png`, { type: 'image/png' });
+
+      // Check if sharing is supported and the file can be shared
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+          await navigator.share({
+            files: [file],
+            title: '我的赛博塔罗占卜结果',
+            text: '快来看看宇宙给我的 Vibe Check！🌙✨',
+          });
+        } catch (shareError: any) {
+          // If the user cancelled or the gesture was lost, fallback to download
+          if (shareError.name !== 'AbortError') {
+            console.warn('Share failed, falling back to download:', shareError);
+            triggerDownload(blob);
+          }
+        }
+      } else {
+        // Fallback to download if share is not supported
+        triggerDownload(blob);
+        alert('您的浏览器不支持直接分享，已为您自动下载图片 🌙');
+      }
+    } catch (error: any) {
+      console.error('Failed to prepare share image:', error);
+      if (error.name !== 'AbortError') {
+        alert('生成分享图片失败，请稍后再试 🌙');
+      }
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  const triggerDownload = (blob: Blob) => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.download = `cyber-tarot-${new Date().getTime()}.png`;
+    link.href = url;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   };
 
   return (
@@ -285,16 +339,24 @@ export default function TarotReading() {
           {!isGenerating && (
             <div className="flex flex-wrap justify-center gap-4 mt-8">
               <button
+                onClick={handleShareImage}
+                disabled={isSharing || isDownloading}
+                className="px-8 py-3 rounded-full gold-btn font-serif tracking-widest flex items-center gap-2 disabled:opacity-70 shadow-[0_0_15px_rgba(212,175,55,0.4)]"
+              >
+                {isSharing ? <Loader2 size={18} className="animate-spin" /> : <Share2 size={18} />}
+                {isSharing ? '准备中...' : '分享占卜'}
+              </button>
+              <button
                 onClick={handleDownloadImage}
-                disabled={isDownloading}
-                className="px-8 py-3 rounded-full gold-btn font-serif tracking-widest flex items-center gap-2 disabled:opacity-70"
+                disabled={isDownloading || isSharing}
+                className="px-8 py-3 rounded-full border border-gold/50 text-gold font-serif tracking-widest flex items-center gap-2 hover:bg-gold/10 transition-colors duration-300"
               >
                 {isDownloading ? <Loader2 size={18} className="animate-spin" /> : <Download size={18} />}
-                {isDownloading ? '生成中...' : '保存长图'}
+                {isDownloading ? '生成中...' : '保存图片'}
               </button>
               <button
                 onClick={reset}
-                className="px-8 py-3 rounded-full border border-gold/30 text-gold font-serif tracking-widest flex items-center gap-2 hover:bg-gold/10 transition-colors duration-300"
+                className="px-8 py-3 rounded-full border border-white/20 text-white/70 font-serif tracking-widest flex items-center gap-2 hover:bg-white/5 transition-colors duration-300"
               >
                 <RotateCcw size={18} /> 重新占卜
               </button>
