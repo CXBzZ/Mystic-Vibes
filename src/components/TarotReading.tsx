@@ -1,8 +1,14 @@
-import { useState, useRef } from 'react';
-import { motion } from 'motion/react';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { getThreeCardReading } from '../services/kimi';
-import { Loader2, Sparkles, ArrowRight, RotateCcw, MoonStar, Download, Share2 } from 'lucide-react';
+import { Loader2, Sparkles, ArrowRight, RotateCcw, MoonStar, Download, Share2, Volume2, VolumeX } from 'lucide-react';
 import * as htmlToImage from 'html-to-image';
+
+const SOUNDS = {
+  ambient: "https://assets.mixkit.co/music/preview/mixkit-mystical-forest-ambient-1212.mp3",
+  draw: "https://assets.mixkit.co/sfx/preview/mixkit-light-impact-with-reverb-2160.mp3",
+  reveal: "https://assets.mixkit.co/sfx/preview/mixkit-magic-marimba-2820.mp3"
+};
 
 interface TarotCard {
   name: string;
@@ -10,29 +16,31 @@ interface TarotCard {
   image: string;
 }
 
+const TAROT_IMAGE_BASE = "https://raw.githubusercontent.com/r-tarot/r-tarot-images/main/cards";
+
 const TAROT_CARDS: TarotCard[] = [
-  { name: "愚者", enName: "The Fool", image: "https://upload.wikimedia.org/wikipedia/commons/9/90/RWS_Tarot_00_Fool.jpg" },
-  { name: "魔术师", enName: "The Magician", image: "https://upload.wikimedia.org/wikipedia/commons/d/de/RWS_Tarot_01_Magician.jpg" },
-  { name: "女祭司", enName: "The High Priestess", image: "https://upload.wikimedia.org/wikipedia/commons/8/88/RWS_Tarot_02_High_Priestess.jpg" },
-  { name: "皇后", enName: "The Empress", image: "https://upload.wikimedia.org/wikipedia/commons/d/d2/RWS_Tarot_03_Empress.jpg" },
-  { name: "皇帝", enName: "The Emperor", image: "https://upload.wikimedia.org/wikipedia/commons/c/c3/RWS_Tarot_04_Emperor.jpg" },
-  { name: "教皇", enName: "The Hierophant", image: "https://upload.wikimedia.org/wikipedia/commons/8/8d/RWS_Tarot_05_Hierophant.jpg" },
-  { name: "恋人", enName: "The Lovers", image: "https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_06_Lovers.jpg" },
-  { name: "战车", enName: "The Chariot", image: "https://upload.wikimedia.org/wikipedia/commons/9/9b/RWS_Tarot_07_Chariot.jpg" },
-  { name: "力量", enName: "Strength", image: "https://upload.wikimedia.org/wikipedia/commons/f/f5/RWS_Tarot_08_Strength.jpg" },
-  { name: "隐士", enName: "The Hermit", image: "https://upload.wikimedia.org/wikipedia/commons/4/4d/RWS_Tarot_09_Hermit.jpg" },
-  { name: "命运之轮", enName: "Wheel of Fortune", image: "https://upload.wikimedia.org/wikipedia/commons/3/3c/RWS_Tarot_10_Wheel_of_Fortune.jpg" },
-  { name: "正义", enName: "Justice", image: "https://upload.wikimedia.org/wikipedia/commons/e/e0/RWS_Tarot_11_Justice.jpg" },
-  { name: "倒吊人", enName: "The Hanged Man", image: "https://upload.wikimedia.org/wikipedia/commons/2/2b/RWS_Tarot_12_Hanged_Man.jpg" },
-  { name: "死神", enName: "Death", image: "https://upload.wikimedia.org/wikipedia/commons/d/d7/RWS_Tarot_13_Death.jpg" },
-  { name: "节制", enName: "Temperance", image: "https://upload.wikimedia.org/wikipedia/commons/f/f8/RWS_Tarot_14_Temperance.jpg" },
-  { name: "恶魔", enName: "The Devil", image: "https://upload.wikimedia.org/wikipedia/commons/5/55/RWS_Tarot_15_Devil.jpg" },
-  { name: "高塔", enName: "The Tower", image: "https://upload.wikimedia.org/wikipedia/commons/5/53/RWS_Tarot_16_Tower.jpg" },
-  { name: "星星", enName: "The Star", image: "https://upload.wikimedia.org/wikipedia/commons/d/db/RWS_Tarot_17_Star.jpg" },
-  { name: "月亮", enName: "The Moon", image: "https://upload.wikimedia.org/wikipedia/commons/7/7f/RWS_Tarot_18_Moon.jpg" },
-  { name: "太阳", enName: "The Sun", image: "https://upload.wikimedia.org/wikipedia/commons/1/17/RWS_Tarot_19_Sun.jpg" },
-  { name: "审判", enName: "Judgement", image: "https://upload.wikimedia.org/wikipedia/commons/2/26/RWS_Tarot_20_Judgment.jpg" },
-  { name: "世界", enName: "The World", image: "https://upload.wikimedia.org/wikipedia/commons/f/ff/RWS_Tarot_21_World.jpg" }
+  { name: "愚者", enName: "The Fool", image: `${TAROT_IMAGE_BASE}/00-fool.jpg` },
+  { name: "魔术师", enName: "The Magician", image: `${TAROT_IMAGE_BASE}/01-magician.jpg` },
+  { name: "女祭司", enName: "The High Priestess", image: `${TAROT_IMAGE_BASE}/02-high-priestess.jpg` },
+  { name: "皇后", enName: "The Empress", image: `${TAROT_IMAGE_BASE}/03-empress.jpg` },
+  { name: "皇帝", enName: "The Emperor", image: `${TAROT_IMAGE_BASE}/04-emperor.jpg` },
+  { name: "教皇", enName: "The Hierophant", image: `${TAROT_IMAGE_BASE}/05-hierophant.jpg` },
+  { name: "恋人", enName: "The Lovers", image: `${TAROT_IMAGE_BASE}/06-lovers.jpg` },
+  { name: "战车", enName: "The Chariot", image: `${TAROT_IMAGE_BASE}/07-chariot.jpg` },
+  { name: "力量", enName: "Strength", image: `${TAROT_IMAGE_BASE}/08-strength.jpg` },
+  { name: "隐士", enName: "The Hermit", image: `${TAROT_IMAGE_BASE}/09-hermit.jpg` },
+  { name: "命运之轮", enName: "Wheel of Fortune", image: `${TAROT_IMAGE_BASE}/10-wheel-of-fortune.jpg` },
+  { name: "正义", enName: "Justice", image: `${TAROT_IMAGE_BASE}/11-justice.jpg` },
+  { name: "倒吊人", enName: "The Hanged Man", image: `${TAROT_IMAGE_BASE}/12-hanged-man.jpg` },
+  { name: "死神", enName: "Death", image: `${TAROT_IMAGE_BASE}/13-death.jpg` },
+  { name: "节制", enName: "Temperance", image: `${TAROT_IMAGE_BASE}/14-temperance.jpg` },
+  { name: "恶魔", enName: "The Devil", image: `${TAROT_IMAGE_BASE}/15-devil.jpg` },
+  { name: "高塔", enName: "The Tower", image: `${TAROT_IMAGE_BASE}/16-tower.jpg` },
+  { name: "星星", enName: "The Star", image: `${TAROT_IMAGE_BASE}/17-star.jpg` },
+  { name: "月亮", enName: "The Moon", image: `${TAROT_IMAGE_BASE}/18-moon.jpg` },
+  { name: "太阳", enName: "The Sun", image: `${TAROT_IMAGE_BASE}/19-sun.jpg` },
+  { name: "审判", enName: "Judgement", image: `${TAROT_IMAGE_BASE}/20-judgment.jpg` },
+  { name: "世界", enName: "The World", image: `${TAROT_IMAGE_BASE}/21-world.jpg` }
 ];
 
 function shuffle(array: TarotCard[]) {
@@ -49,12 +57,49 @@ export default function TarotReading() {
   const resultRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  
+  const ambientAudio = useRef<HTMLAudioElement | null>(null);
+  const sfxAudio = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    ambientAudio.current = new Audio(SOUNDS.ambient);
+    ambientAudio.current.loop = true;
+    ambientAudio.current.volume = 0.4;
+    
+    sfxAudio.current = new Audio();
+    sfxAudio.current.volume = 0.6;
+
+    return () => {
+      ambientAudio.current?.pause();
+      ambientAudio.current = null;
+      sfxAudio.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (ambientAudio.current) {
+      if (!isMuted && step !== 'input') {
+        ambientAudio.current.play().catch(e => console.log("Audio play blocked:", e));
+      } else {
+        ambientAudio.current.pause();
+      }
+    }
+  }, [isMuted, step]);
+
+  const playSfx = (type: 'draw' | 'reveal') => {
+    if (isMuted || !sfxAudio.current) return;
+    sfxAudio.current.src = SOUNDS[type];
+    sfxAudio.current.play().catch(e => console.log("SFX play blocked:", e));
+  };
 
   const handleStartDraw = () => {
     if (!question.trim()) return;
     setDeck(shuffle(TAROT_CARDS));
     setSelectedIndices([]);
     setStep('draw');
+    if (isMuted) setIsMuted(false); // Auto-unmute on first interaction if possible
   };
 
   const handleSelectCard = (index: number) => {
@@ -62,6 +107,7 @@ export default function TarotReading() {
       setSelectedIndices(selectedIndices.filter(i => i !== index));
     } else if (selectedIndices.length < 3) {
       setSelectedIndices([...selectedIndices, index]);
+      playSfx('draw');
     }
   };
 
@@ -73,6 +119,7 @@ export default function TarotReading() {
     try {
       const result = await getThreeCardReading(question, drawnCards);
       setReading(result);
+      playSfx('reveal');
     } catch (error) {
       console.error(error);
       setReading("灵界信号微弱，请稍后再试... 🌙");
@@ -91,14 +138,12 @@ export default function TarotReading() {
   const handleDownloadImage = async () => {
     if (!resultRef.current) return;
     setIsDownloading(true);
+    setIsCapturing(true);
     try {
       const dataUrl = await htmlToImage.toPng(resultRef.current, {
         backgroundColor: '#11131A',
         pixelRatio: 2,
-        style: {
-          transform: 'scale(1)',
-          transformOrigin: 'top left'
-        }
+        cacheBust: true,
       });
       const link = document.createElement('a');
       link.download = `cyber-tarot-${new Date().getTime()}.png`;
@@ -109,17 +154,20 @@ export default function TarotReading() {
       alert('生成长图失败，请稍后再试 🌙');
     } finally {
       setIsDownloading(false);
+      setIsCapturing(false);
     }
   };
 
   const handleShareImage = async () => {
     if (!resultRef.current) return;
     setIsSharing(true);
+    setIsCapturing(true);
     try {
       // Use toBlob directly as it's faster and avoids fetch()
       const blob = await htmlToImage.toBlob(resultRef.current, {
         backgroundColor: '#11131A',
         pixelRatio: 2,
+        cacheBust: true,
       });
 
       if (!blob) throw new Error('Failed to generate image blob');
@@ -153,6 +201,7 @@ export default function TarotReading() {
       }
     } finally {
       setIsSharing(false);
+      setIsCapturing(false);
     }
   };
 
@@ -166,7 +215,16 @@ export default function TarotReading() {
   };
 
   return (
-    <div className="flex flex-col items-center w-full">
+    <div className="flex flex-col items-center w-full relative">
+      {/* Mute Toggle */}
+      <button 
+        onClick={() => setIsMuted(!isMuted)}
+        className="fixed top-6 right-6 z-50 p-3 rounded-full glass-panel border-gold/30 text-gold hover:bg-gold/10 transition-all duration-300"
+        title={isMuted ? "开启声音" : "静音"}
+      >
+        {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+      </button>
+
       {step === 'input' && (
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
@@ -274,7 +332,7 @@ export default function TarotReading() {
         >
           <div ref={resultRef} className="w-full flex flex-col items-center p-4 md:p-8 rounded-3xl relative">
             {/* Background pattern for exported image */}
-            <div className="absolute inset-0 pointer-events-none rounded-3xl opacity-0 print:opacity-100" style={{
+            <div className={`absolute inset-0 pointer-events-none rounded-3xl ${isCapturing ? 'opacity-100' : 'opacity-0'}`} style={{
                backgroundImage: 'radial-gradient(circle at 50% 0%, #4A3B69 0%, transparent 50%), radial-gradient(circle at 100% 100%, rgba(138, 154, 91, 0.15) 0%, transparent 50%)'
             }}></div>
 
@@ -290,19 +348,62 @@ export default function TarotReading() {
                     </div>
                     <motion.div 
                       initial={{ rotateY: 180, opacity: 0 }}
-                      animate={{ rotateY: 0, opacity: 1 }}
-                      transition={{ duration: 0.8, delay: i * 0.3, type: "spring" }}
-                      className="w-full aspect-[2/3] glass-panel p-3 flex flex-col items-center justify-center text-center relative overflow-hidden group"
+                      animate={{ 
+                        rotateY: 0, 
+                        opacity: 1,
+                        y: [0, -8, 0] 
+                      }}
+                      transition={{ 
+                        rotateY: { duration: 1.2, delay: i * 0.4, type: "spring", stiffness: 50 },
+                        opacity: { duration: 0.8, delay: i * 0.4 },
+                        y: { 
+                          duration: 4, 
+                          repeat: Infinity, 
+                          ease: "easeInOut",
+                          delay: i * 0.5 
+                        }
+                      }}
+                      className="w-full aspect-[2/3] glass-panel p-2 flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-[0_0_30px_rgba(212,175,55,0.1)] hover:shadow-[0_0_40px_rgba(212,175,55,0.3)] transition-shadow duration-500"
                     >
-                      <img 
-                        src={card.image} 
-                        alt={card.name}
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover rounded-lg border border-gold/20"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-midnight via-midnight/90 to-transparent pt-12 pb-4 px-2 translate-y-full group-hover:translate-y-0 transition-transform duration-500">
-                        <h3 className="font-serif text-xl font-bold text-gold mb-1">{card.name}</h3>
-                        <p className="font-sans text-xs text-ivory-dim tracking-wider uppercase">{card.enName}</p>
+                      <div className="w-full h-full relative overflow-hidden rounded-lg bg-midnight/50">
+                        {/* Loading Spinner for Image */}
+                        <div className="absolute inset-0 flex items-center justify-center z-0">
+                          <Loader2 className="animate-spin text-gold/20" size={24} />
+                        </div>
+                        
+                        <motion.img 
+                          src={card.image} 
+                          alt={card.name}
+                          referrerPolicy="no-referrer"
+                          className="w-full h-full object-cover relative z-10"
+                          whileHover={{ scale: 1.1 }}
+                          transition={{ duration: 0.6 }}
+                          onLoad={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.opacity = '1';
+                          }}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            // Fallback to a card back pattern if image fails
+                            target.src = "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?q=80&w=500&auto=format&fit=crop";
+                            target.style.opacity = '0.5';
+                          }}
+                          style={{ opacity: 0, transition: 'opacity 0.5s ease' }}
+                        />
+                        {/* Subtle shimmer overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-tr from-gold/0 via-white/5 to-gold/0 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none z-20"></div>
+                      </div>
+                      
+                      {/* Integrated Label Overlay - Always partially visible, fully on hover */}
+                      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-midnight via-midnight/80 to-transparent pt-16 pb-4 px-2 z-30">
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.4 + 0.8 }}
+                        >
+                          <h3 className="font-serif text-xl font-bold text-gold drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{card.name}</h3>
+                          <p className="font-sans text-[10px] text-ivory-dim tracking-[0.2em] uppercase font-medium mt-1">{card.enName}</p>
+                        </motion.div>
                       </div>
                     </motion.div>
                   </div>
